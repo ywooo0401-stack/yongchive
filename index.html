@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 가계부 시스템</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <header class="bg-slate-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <span>📊</span> 2026 가계부 대시보드
+            </h1>
+            <nav class="flex gap-4 text-sm text-slate-300">
+                <span class="bg-slate-800 px-3 py-1 rounded text-emerald-400 font-medium">로컬 서버 작동 중</span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-xs border border-slate-100">
+                <div class="text-sm font-medium text-slate-500 mb-1">올해 총 수입</div>
+                <div class="text-2xl font-bold text-slate-900" id="total-income">0원</div>
+                <div class="text-xs text-emerald-600 mt-2">↑ 월급 및 금융소득 포함</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-xs border border-slate-100">
+                <div class="text-sm font-medium text-slate-500 mb-1">올해 총 저축</div>
+                <div class="text-2xl font-bold text-indigo-600" id="total-savings">0원</div>
+                <div class="text-xs text-indigo-500 mt-2">목표 저축률 설정 필요</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-xs border border-slate-100">
+                <div class="text-sm font-medium text-slate-500 mb-1">올해 총 지출</div>
+                <div class="text-2xl font-bold text-rose-600" id="total-expense">0원</div>
+                <div class="text-xs text-slate-400 mt-2">고정비 / 변동비 합산</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-xs border border-slate-100">
+                <div class="text-sm font-medium text-slate-500 mb-1">현재 잔액 (잉여)</div>
+                <div class="text-2xl font-bold text-emerald-600" id="net-budget">0원</div>
+                <div class="text-xs text-slate-400 mt-2">수입 - (저축 + 지출)</div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <section class="lg:col-span-1 bg-white p-6 rounded-xl shadow-xs border border-slate-100 h-fit">
+                <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                    ✏️ 가계부 내역 기록
+                </h2>
+                <form id="ledger-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">날짜</label>
+                        <input type="date" id="entry-date" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-slate-900">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">대분류</label>
+                        <select id="entry-type" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-slate-900">
+                            <option value="income">수입 (월급, 부수입 등)</option>
+                            <option value="savings">저축 (적금, 청약 등)</option>
+                            <option value="expense">지출 (고정비, 변동비 등)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">항목명</label>
+                        <input type="text" id="entry-title" placeholder="예: 3월 월급, 식비 등" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-slate-900">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">금액 (원)</label>
+                        <input type="number" id="entry-amount" placeholder="숫자만 입력" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-slate-900">
+                    </div>
+                    <button type="submit" class="w-full bg-slate-900 text-white py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors">
+                        기록 추가하기
+                    </button>
+                </form>
+            </section>
+
+            <section class="lg:col-span-2 bg-white p-6 rounded-xl shadow-xs border border-slate-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                        📋 입출금 상세 내역
+                    </h2>
+                    <button id="clear-btn" class="text-xs text-rose-500 hover:underline">전체 초기화</button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-xs uppercase text-slate-700 font-semibold border-b border-slate-100">
+                            <tr>
+                                <th class="px-4 py-3">날짜</th>
+                                <th class="px-4 py-3">구분</th>
+                                <th class="px-4 py-3">항목명</th>
+                                <th class="px-4 py-3 text-right">금액</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledger-tbody" class="divide-y divide-slate-100">
+                            </tbody>
+                    </table>
+                </div>
+                <div id="empty-state" class="text-center py-12 text-slate-400 text-sm">
+                    아직 등록된 내역이 없습니다. 왼쪽에서 첫 내역을 입력해 보세요!
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // 변수 초기화 및 LocalStorage 로드
+        let ledgerEntries = JSON.parse(localStorage.getItem('ledgerEntries')) || [];
+
+        const form = document.getElementById('ledger-form');
+        const tbody = document.getElementById('ledger-tbody');
+        const emptyState = document.getElementById('empty-state');
+        const clearBtn = document.getElementById('clear-btn');
+
+        // 오늘 날짜 기본 지정
+        document.getElementById('entry-date').valueToDate = new Date();
+        document.getElementById('entry-date').value = new Date().toISOString().substring(0, 10);
+
+        // 화면 갱신 및 통계 계산 함수 (정확한 수치 팩트 기반 구현)
+        function updateDashboard() {
+            tbody.innerHTML = '';
+            
+            let incomeSum = 0;
+            let savingsSum = 0;
+            let expenseSum = 0;
+
+            if (ledgerEntries.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                
+                // 최신순 정렬
+                ledgerEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                ledgerEntries.forEach(entry => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-slate-50 transition-colors';
+
+                    let typeBadge = '';
+                    if (entry.type === 'income') {
+                        typeBadge = '<span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-sm text-xs font-medium">수입</span>';
+                        incomeSum += parseInt(entry.amount);
+                    } else if (entry.type === 'savings') {
+                        typeBadge = '<span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-sm text-xs font-medium">저축</span>';
+                        savingsSum += parseInt(entry.amount);
+                    } else {
+                        typeBadge = '<span class="px-2 py-0.5 bg-rose-50 text-rose-700 rounded-sm text-xs font-medium">지출</span>';
+                        expenseSum += parseInt(entry.amount);
+                    }
+
+                    row.innerHTML = `
+                        <td class="px-4 py-3 text-slate-500">${entry.date}</td>
+                        <td class="px-4 py-3">${typeBadge}</td>
+                        <td class="px-4 py-3 font-medium text-slate-900">${entry.title}</td>
+                        <td class="px-4 py-3 text-right font-semibold ${entry.type === 'income' ? 'text-emerald-600' : entry.type === 'savings' ? 'text-indigo-600' : 'text-rose-600'}">
+                            ${entry.type === 'income' ? '+' : '-'} ${parseInt(entry.amount).toLocaleString()}원
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            // 상단 대시보드 텍스트 업데이트
+            document.getElementById('total-income').innerText = `${incomeSum.toLocaleString()}원`;
+            document.getElementById('total-savings').innerText = `${savingsSum.toLocaleString()}원`;
+            document.getElementById('total-expense').innerText = `${expenseSum.toLocaleString()}원`;
+            document.getElementById('net-budget').innerText = `${(incomeSum - savingsSum - expenseSum).toLocaleString()}원`;
+        }
+
+        // 새로운 데이터 기록 추가 이벤트
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const date = document.getElementById('entry-date').value;
+            const type = document.getElementById('entry-type').value;
+            const title = document.getElementById('entry-title').value;
+            const amount = document.getElementById('entry-amount').value;
+
+            const newEntry = { date, type, title, amount };
+            ledgerEntries.push(newEntry);
+
+            // 로컬 스토리지 동기화 및 렌더링
+            localStorage.setItem('ledgerEntries', JSON.stringify(ledgerEntries));
+            updateDashboard();
+
+            // 폼 리셋 (날짜는 유지)
+            document.getElementById('entry-title').value = '';
+            document.getElementById('entry-amount').value = '';
+        });
+
+        // 데이터 초기화 버튼 이벤트
+        clearBtn.addEventListener('click', function() {
+            if(confirm('등록된 모든 가계부 기록을 지우시겠습니까?')) {
+                ledgerEntries = [];
+                localStorage.removeItem('ledgerEntries');
+                updateDashboard();
+            }
+        });
+
+        // 앱 초기 실행
+        updateDashboard();
+    </script>
+</body>
+</html>
